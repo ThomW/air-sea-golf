@@ -1,0 +1,6 @@
+# Prevent Phaser's protected files from being committed
+box2d-html5.js
+box2d-plugin.js
+box2d-plugin-full.js
+phaser.js
+js/
