@@ -8,6 +8,9 @@ function preload () {
    game.load.image('ball', 'img/ball.png');
    game.load.image('arrow', 'img/arrow.png');
    game.load.image('flag', 'img/flag.png');
+   game.load.image('shooter', 'img/shooter.png');
+   game.load.image('scanlines', 'img/scanlines.png');
+   game.load.image('tv', 'img/tv-overlay.png');
 }
 
 var title;
@@ -15,11 +18,21 @@ var title;
 var ballSprite;
 var arrowSprite;
 var flagSprite;
-var holeTarget;
+
+var shooterBaseSprite;
+var shooterAngleSprite;
+
 var mouseDownPosition = {};
+
 var groundLevel = 600 - 64; // platform is 128 high, centered at bottom of screen
 
  var planes;
+
+var hillGraphics = [];
+var hillBodies = [];
+
+var tv;
+var scanlines;
 
 // Some game variables
 var score;
@@ -35,8 +48,12 @@ function gameStart() {
 
    console.log('gameStart');
 
+   drawHills(false);
+
    score = 0;
    showTitle();
+
+
 
    // Start the game when the mouse is clicked
    gameState = GAME_STATE_TITLE;
@@ -44,14 +61,7 @@ function gameStart() {
 
 }
 
-
-
 function clickStart() {
-
-   if (gameState != GAME_STATE_TITLE) {
-      console.log('why are you here?');
-      return;
-   }
 
    gameState = GAME_STATE_PLAYING;
 
@@ -63,60 +73,71 @@ function clickStart() {
    roundStart();
 }
 
-function roundStart() {
+function drawHills(showHole) {
 
-   remainingBalls = 3;
+   if (showHole == null) {
+      showHole = false;
+   }
+
+   // Kill the previous hill objects
+   while (hillGraphics.length > 0) {
+      hillGraphics.pop().destroy();
+   }
+   while (hillBodies.length > 0) {
+      hillBodies.pop().destroy();
+   }
+   if (flagSprite != null) {
+      flagSprite.destroy();
+      flagSprite = null;
+   }
 
    // Generate hills
-
-   var NUM_VALLEYS = 5;
+   var NUM_VALLEYS = 2 + (Math.random() * 3);
    var NUM_VALLEY_SLICES = 10;
 
    var hillCoordinates = calcValleys(NUM_VALLEYS, NUM_VALLEY_SLICES);
 
-   // Randomly place the hole somewhere on the right side of the screen
-   var holeFinderIdx = Math.round((hillCoordinates.length * 0.66) * Math.random() + (hillCoordinates.length / 3));
-   var wentDown = false;
-   for (var holeIdx = holeFinderIdx; holeIdx < hillCoordinates.length; holeIdx++) {
+   if (showHole) {
 
-      // If we hit the edge of the screen, re-roll the starting index (this is highly irregular, but it works, so #YOLO)
-      if (holeIdx + 1 == hillCoordinates.length) {
-         holeIdx = Math.round((hillCoordinates.length * 0.66) * Math.random() + (hillCoordinates.length / 3));
+      // Randomly place the hole somewhere on the right side of the screen
+      var holeFinderIdx = Math.round((hillCoordinates.length * 0.66) * Math.random() + (hillCoordinates.length / 3));
+      var wentDown = false;
+      for (var holeIdx = holeFinderIdx; holeIdx < hillCoordinates.length; holeIdx++) {
+
+         // If we hit the edge of the screen, re-roll the starting index (this is highly irregular, but it works, so #YOLO)
+         if (holeIdx + 1 == hillCoordinates.length) {
+            holeIdx = Math.round((hillCoordinates.length * 0.66) * Math.random() + (hillCoordinates.length / 3));
+         }
+
+         // We want to make sure we're at the bottom of a hole, hence the 'went down' flag
+         if (wentDown && hillCoordinates[holeIdx][5] > hillCoordinates[holeIdx + 1][5]) {
+
+            // Store the point where the flag should be placed
+            var flagPoint = new Phaser.Point((hillCoordinates[holeIdx][2] + hillCoordinates[holeIdx + 1][2]) * 0.5 , hillCoordinates[holeIdx][3]);
+
+            hillCoordinates[holeIdx][3] = game.world.height - 5;
+            hillCoordinates[holeIdx][5] = game.world.height - 5; // Hard code the hole depth
+            holeFinderIdx = holeIdx;
+            break;
+         }
+         else if (hillCoordinates[holeIdx][5] < hillCoordinates[holeIdx + 1][5]) {
+            wentDown = true;
+         }
       }
 
-      // We want to make sure we're at the bottom of a hole, hence the 'went down' flag
-      if (wentDown && hillCoordinates[holeIdx][5] > hillCoordinates[holeIdx + 1][5]) {
-         hillCoordinates[holeIdx][3] = game.world.height - 5;
-         hillCoordinates[holeIdx][5] = game.world.height - 5; // Hard code the hole depth
-         holeFinderIdx = holeIdx;
-         break;
-      }
-      else if (hillCoordinates[holeIdx][5] < hillCoordinates[holeIdx + 1][5]) {
-         wentDown = true;
-      }
+      // Place the flag
+      flagSprite = game.add.sprite(flagPoint.x, flagPoint.y, 'flag');
+      flagSprite.anchor.setTo(0.5, 1);
    }
-
-   /*
-   if (holeTarget != null) {
-   	holeTarget.destroy();
-   }
-   holeTarget = new Phaser.Polygon(graphicPoints);
-   var holeCoordinates = hillCoordinates[holeFinderIdx].slice(0);
-   holeCoordinates[3] -= 10;
-   holeCoordinates[5] -= 10;
-   game.add
-   */
-
-
 
    // 
    for (var i = 0; i < hillCoordinates.length; i++)
    {
-
       // Clone the hillCoordinates of this point so I can alter them to make them look blocky without affecting the physics
-      var graphicPoints = hillCoordinates[i].slice(0); 
+      var graphicPoints = hillCoordinates[i].slice(0);
       graphicPoints[3] = graphicPoints[5];
 
+      // I have to turn this dumb thing into a sprite I guess. 
       poly = new Phaser.Polygon(graphicPoints);
       graphics = game.add.graphics(0,0);
       graphics.beginFill(0x008800);
@@ -125,9 +146,25 @@ function roundStart() {
 
       var body = new Phaser.Physics.Box2D.Body(game, null, 0, 0, 0);
       body.setChain(hillCoordinates[i]);
-      body.friction = 0.5;
       body.static = true;
+
+      // Store the graphics and body objects so they can be destroyed next redraw
+      hillGraphics.push(graphics);
+      hillBodies.push(body);
    }
+
+   // Fix z-order problems
+   game.world.bringToTop(title);
+   game.world.bringToTop(ballSprite);
+   game.world.bringToTop(scanlines);
+   game.world.bringToTop(tv);
+}
+
+function roundStart() {
+
+   remainingBalls = 3;
+
+   drawHills(true);
 
    // Set up handlers for mouse events
    game.input.onDown.add(mouseDragStart, this);
@@ -138,11 +175,21 @@ function create () {
    // Enable Physics
    game.physics.startSystem(Phaser.Physics.BOX2D);
    game.physics.box2d.setBoundsToWorld();
-   game.physics.box2d.gravity.x = 6000;
 
+   game.physics.box2d.density = 5;
+   game.physics.box2d.friction = 100;
+   game.physics.box2d.restitution = 0.25; // 0-1 (No bounce - max bounce)
+
+   game.physics.box2d.gravity.y = 6000;
 
    var background = game.add.sprite(game.world.centerX, game.world.centerY, 'background');
    background.anchor.setTo(0.5, 0.5);
+
+   scanlines = game.add.tileSprite(0, 0, 800, 600, 'scanlines');
+   scanlines.alpha = 0.06;
+
+   tv = game.add.sprite(game.world.centerX, game.world.centerY, 'tv');
+   tv.anchor.setTo(0.5, 0.5);
 
    // Setup planes using group
    planes = game.add.physicsGroup(Phaser.Physics.BOX2D);
@@ -185,19 +232,28 @@ function create () {
    title = game.add.sprite(game.world.centerX, game.world.centerY, 'title');
    title.anchor.setTo(0.5, 0.5);
    title.alpha = 0;
-   title.scale.set(1);
 
    // The ball
    ballSprite = game.add.sprite(100, groundLevel - 100, 'ball');
    game.physics.box2d.enable(ballSprite);
    ballSprite.body.gravityScale = 0;
    ballSprite.body.setCircle(4);
-   ballSprite.body.friction = 1;
    ballSprite.body.collideWorldBounds = false;
+   ballSprite.body.mass = 100;
+
    ballSprite.scaleX = ballSprite.scaleY = 2;
    ballSprite.body.bullet = true;
 
    // ballSprite.body.setBodyContactCallback(planes, planeCallback, this);
+
+   // The shooter
+   shooterBaseSprite = game.add.sprite(100, groundLevel - 100, 'shooter');
+
+   shooterAngleSprite = game.add.sprite(100, groundLevel - 100, 'shooter');
+   shooterAngleSprite.pivot.x = 6;
+   shooterAngleSprite.pivot.y = 6;
+
+
 
    gameStart();
 }
@@ -241,6 +297,9 @@ function mouseDragStart() {
    arrowSprite.alpha = 0.5;
    mouseDragMove();
 
+   // Display the aiming indicator
+   shooterAngleSprite.alpha = 1;
+
    game.input.addMoveCallback(mouseDragMove, this);
    game.input.onUp.add(mouseDragEnd, this);
 }
@@ -257,6 +316,9 @@ function mouseDragMove() {
    
    arrowSprite.scale.set(length * 0.05, 0.5);
    arrowSprite.rotation = Math.atan2( -dy, -dx );
+
+   // Move the shooter
+   shooterAngleSprite.rotation = Math.atan2(-dy, -dx);
 }
 
 function mouseDragEnd() {
@@ -268,11 +330,15 @@ function mouseDragEnd() {
    var dx = mouseNowPosition.x - mouseDownPosition.x;
    var dy = mouseNowPosition.y - mouseDownPosition.y;
    
-    ballSprite.body.gravityScale = 1;
+   ballSprite.body.gravityScale = 1;
    ballSprite.body.velocity.x = -dx * 10;
    ballSprite.body.velocity.y = -dy * 10;
 
    arrowSprite.alpha = 0;
+
+   // Reset this to a generic angle
+   arrowSprite.rotation = 0;
+
    mouseDownPosition = {};
 }
 
