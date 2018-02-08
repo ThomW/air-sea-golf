@@ -1,6 +1,9 @@
 
 var game = new Phaser.Game(800, 600, Phaser.AUTO, 'phaser-game', { preload: preload, create: create, update: update, render: render });
 
+var soundNames = ['shoot', 'inhole', 'planecollide', 'ballbounce', 'planebounce'];
+var sounds = [];
+
 function preload () {
    game.load.image('background', 'img/background.png');
    game.load.image('title', 'img/title.png');
@@ -11,6 +14,10 @@ function preload () {
    game.load.image('shooter', 'img/shooter.png');
    game.load.image('scanlines', 'img/scanlines.png');
    game.load.image('tv', 'img/tv-overlay.png');
+
+   for (var i = 0; i < soundNames.length; i++) {
+      game.load.audio(soundNames[i], 'audio/' + soundNames[i] + '.mp3');
+   }
 }
 
 var title;
@@ -18,6 +25,7 @@ var title;
 var ballSprite;
 var arrowSprite;
 var flagSprite;
+var holeBgSprite;
 var holeSensor;
 
 var shooterBaseSprite;
@@ -25,7 +33,7 @@ var shooterAngleSprite;
 
 var mouseDownPosition = {};
 
-var groundLevel = 600 - 64; // platform is 128 high, centered at bottom of screen
+var groundLevel = 600 - 128; // platform is 128 high, centered at bottom of screen
 
  var planes;
 
@@ -39,27 +47,25 @@ var scanlines;
 var score;
 var remainingBalls = 0;
 
-var GAME_STATE_TITLE = 0;
-var GAME_STATE_PLAYING = 1;
-var GAME_STATE_CHANGE_HOLES = 20;
+var GAME_STATE_BUSY = 0;
+var GAME_STATE_TITLE = 1;
+var GAME_STATE_PLAYING = 2;
+var GAME_STATE_CHANGE_HOLES = 8;
 
 var gameState = GAME_STATE_TITLE;
 
-function gameStart() {
+var shootingInput = null;
 
-   console.log('gameStart');
+function gameStart() {
 
    drawHills(false);
 
    score = 0;
    showTitle();
 
-
-
    // Start the game when the mouse is clicked
    gameState = GAME_STATE_TITLE;
    game.input.onDown.add(clickStart, this);
-
 }
 
 function clickStart() {
@@ -96,7 +102,7 @@ function drawHills(showHole) {
 
    var hillCoordinates = calcValleys(NUM_VALLEYS, NUM_VALLEY_SLICES);
 
-   console.log('hillCoordinates: ' + hillCoordinates.length + ' -- max: ' + hillCoordinates[hillCoordinates.length - 1][4]);
+   // console.log('hillCoordinates: ' + hillCoordinates.length + ' -- max: ' + hillCoordinates[hillCoordinates.length - 1][4]);
 
    if (showHole) {
 
@@ -108,6 +114,7 @@ function drawHills(showHole) {
          // If we hit the edge of the screen, re-roll the starting index (this is highly irregular, but it works, so #YOLO)
          if (holeIdx + 1 == hillCoordinates.length) {
             holeIdx = Math.round((hillCoordinates.length * 0.5) * Math.random() + (hillCoordinates.length * 0.25));
+            wentDown = false;
          }
 
          // We want to make sure we're at the bottom of a hole, hence the 'went down' flag
@@ -216,7 +223,7 @@ function create () {
    for (var i = 0; i < 5; i++) {
 
       var startX = 0;
-      var startY = groundLevel - (100 * (i + 1));
+      var startY = groundLevel - (80 * (i + 1));
       var velocityX = Math.random() * 100 + 50;
       var scaleX = 1;
 
@@ -231,18 +238,19 @@ function create () {
       // Custom variable to hold the plane's starting position to make it easier to reset
       p.startingY = startY;
 
-      p.anchor.set(0.5);
       p.tint = Math.random() * 0xffffff;
       p.scale.x = scaleX;
-      p.scale.y = 1;
 
       p.body.velocity.x = velocityX;
 
       p.body.gravityScale = 0;
 
       p.body.collideWorldBounds = false;
-   }
 
+      p.body.setCollisionCategory(3);
+
+      // p.body.setCategoryContactCallback(1, planeOnPlaneCallback, this);
+   }
 
    // Increase default density before creating ball
    game.physics.box2d.density = 4;
@@ -255,6 +263,8 @@ function create () {
    // Create the flag sprite
    flagSprite = game.add.sprite(0, 0, 'flag');
    flagSprite.anchor.setTo(0.5, 1);
+   flagSprite.scale.x = 2;
+   flagSprite.scale.y = 2;
    flagSprite.kill();
    
    // Show the game's title screen
@@ -271,9 +281,11 @@ function create () {
    ballSprite.body.mass = 100;
    ballSprite.body.allowSleep = true;
    ballSprite.body.bullet = true;
-   ballSprite.visible = false;
+   ballSprite.kill();
 
-   ballSprite.body.setBodyContactCallback(planes, planeCallback, this);
+   // Collisions between bodies and groups have to use CategoryContact to work
+   ballSprite.body.setCategoryContactCallback(3, ballOnPlaneCallback, this);
+   // ballSprite.body.setCategoryContactCallback(1, ballOnGroundCallback, this);
 
    // Setup the hole sensor
    holeSensor = game.add.sprite(0, game.world.height, 'ball');
@@ -294,10 +306,29 @@ function create () {
    shooterAngleSprite.pivot.y = 6;
    shooterAngleSprite.angle = -75;
 
+   // Init sounds
+   for (var i = 0; i < soundNames.length; i++) {
+      sounds[soundNames[i]] = game.add.audio(soundNames[i]);
+   }
+
    gameStart();
 }
 
 function update() {
+
+   if (gameState == GAME_STATE_CHANGE_HOLES) {
+
+      gameState = GAME_STATE_BUSY;
+
+      roundStart();
+
+      gameState = GAME_STATE_PLAYING;
+   }
+
+   // When the player is shooting, update the shooter
+   if (shootingInput) {
+      updateShooter();
+   }
 
    // Do some housekeeping on the planes
    for (var i = 0, len = planes.children.length; i < len; i++) {
@@ -338,11 +369,6 @@ function update() {
          p.tint = Math.random() * 0xffffff;
       }
    }
-
-   if (gameState == GAME_STATE_CHANGE_HOLES) {
-      roundStart();
-      gameState = GAME_STATE_PLAYING;
-   }
 }
 
 function showTitle() {
@@ -355,39 +381,46 @@ function hideTitle() {
 
 function mouseDragStart() {
 
-   ballSprite.visible = false;
    ballSprite.body.gravityScale = 0;
-   ballSprite.body.x = 100;
-   ballSprite.body.y = shooterBaseSprite.world.y - 10;
+   ballSprite.reset(100, shooterBaseSprite.world.y - 10);
+   ballSprite.visible = false;
    ballSprite.body.velocity.x = 0;
    ballSprite.body.velocity.y = 0;
    ballSprite.body.angularVelocity = 0;
-   
-   mouseDownPosition.x = game.input.mousePointer.position.x;
-   mouseDownPosition.y = game.input.mousePointer.position.y;
+
+   shootingInput = true;
+
+   mouseDownPosition.x = game.input.activePointer.position.x;
+   mouseDownPosition.y = game.input.activePointer.position.y;
 
    arrowSprite.reset(shooterBaseSprite.world.x, shooterBaseSprite.world.y);
    arrowSprite.alpha = 0.5;
 
-   mouseDragMove();
+   updateShooter();
 
    // Display the aiming indicator
    shooterAngleSprite.reset(shooterBaseSprite.world.x, shooterBaseSprite.world.y);
    shooterAngleSprite.alpha = 1;
 
-   game.input.addMoveCallback(mouseDragMove, this);
+   // game.input.addMoveCallback(mouseDragMove, this);
    game.input.onUp.add(mouseDragEnd, this);
 }
 
-function mouseDragMove() {
-   
-   if ( mouseDownPosition == null )
+function updateShooter() {
+
+   if (!shootingInput) {
       return;
+   }
    
-   var mouseNowPosition = game.input.mousePointer.position;
+   if ( mouseDownPosition == null ) {
+      return;
+   }
+   
+   var mouseNowPosition = game.input.activePointer.position;
    var dx = mouseNowPosition.x - mouseDownPosition.x;
    var dy = mouseNowPosition.y - mouseDownPosition.y;
-   var length = Math.sqrt( dx*dx + dy*dy );
+
+   var length = Math.sqrt( dx * dx + dy * dy );
    
    arrowSprite.scale.set(length * 0.05, 0.5);
    arrowSprite.rotation = Math.atan2( -dy, -dx );
@@ -399,9 +432,10 @@ function mouseDragMove() {
 function mouseDragEnd() {
 
    game.input.onUp.removeAll();
-   game.input.deleteMoveCallback(mouseDragMove, this);
 
-   var mouseNowPosition = game.input.mousePointer.position;
+   sounds.shoot.play();
+
+   var mouseNowPosition = game.input.activePointer.position;
    var dx = mouseNowPosition.x - mouseDownPosition.x;
    var dy = mouseNowPosition.y - mouseDownPosition.y;
    
@@ -413,37 +447,58 @@ function mouseDragEnd() {
    arrowSprite.alpha = 0;
 
    mouseDownPosition = {};
+   shootingInput = false;
 }
 
 
 // This function will be triggered when the ball begins or ends touching a plane
-function planeCallback(body1, body2, fixture1, fixture2, begin) {
+function planeOnPlaneCallback(body1, body2, fixture1, fixture2, begin) {
 
     // This callback is also called for EndContact events, which we are not interested in.
-    if (!begin)
-    {
-         console.log('begin is false');
+    if (!begin) {
         return;
     }
 
-    console.log('ho');
-    
-    // body1 is the ball because it's the body that owns the callback
-    // body2 is the body it impacted with, in this case the plane
-    // fixture1 is the fixture of body1 that was touched
-    // fixture2 is the fixture of body2 that was touched
-
-    game.add.tween(body2).to({ y: groundLevel }, 1000, Phaser.Easing.Exponential.None);
-
+    sounds.planebounce.play();
 }
+
+// This function will be triggered when the ball begins or ends touching a plane
+function ballOnPlaneCallback(body1, body2, fixture1, fixture2, begin) {
+
+    // This callback is also called for EndContact events, which we are not interested in.
+    if (!begin) {
+        return;
+    }
+
+    sounds.planecollide.play();
+}
+
+function ballOnGroundCallback(body1, body2, fixture1, fixture2, begin) {
+
+    // This callback is also called for EndContact events, which we are not interested in.
+    if (!begin) {
+        return;
+    }
+
+    sounds.ballbounce.play();
+}
+
+
 
 function inHoleCallback(body1, body2, fixture1, fixture2, begin) {
 
+   if (!begin) {
+      return;
+   }
+
    // Do scorekeeping, etc.
 
-   console.log('in hole!');
+   ballSprite.kill();
+   holeSensor.kill();
 
    gameState = GAME_STATE_CHANGE_HOLES;
+
+   sounds.inhole.play();
 }
 
 function render() {
@@ -468,11 +523,13 @@ function calcValleys(numberOfValleys, pixelStep) {
    var hillWidth = game.world.width / numberOfValleys;
    var hillSliceWidth = hillWidth / pixelStep;
 
+   /*
    console.log('game.world.width: ' + game.world.width);
    console.log('numberOfValleys: ' + numberOfValleys);
    console.log('hillWidth: ' + hillWidth);
    console.log('hillSliceWidth: ' + hillSliceWidth);
-
+   */
+   
    var hillVector = new box2d.b2Vec2();
 
    var hillX = 0;
