@@ -15,6 +15,9 @@ function preload () {
    game.load.image('scanlines', 'img/scanlines.png');
    game.load.image('tv', 'img/tv-overlay.png');
 
+   game.load.image('scoreFont', 'fonts/asb.png');
+
+
    for (var i = 0; i < soundNames.length; i++) {
       game.load.audio(soundNames[i], 'audio/' + soundNames[i] + '.mp3');
    }
@@ -44,6 +47,7 @@ var tv;
 var scanlines;
 
 // Some game variables
+var MAX_BALLS = 3;
 var score;
 var remainingBalls = 0;
 
@@ -56,11 +60,17 @@ var gameState = GAME_STATE_TITLE;
 
 var shootingInput = null;
 
+var score;
+var scoreText;
+var scoreImg;
+
+
 function gameStart() {
 
    drawHills(false);
 
    score = 0;
+
    showTitle();
 
    // Start the game when the mouse is clicked
@@ -97,7 +107,7 @@ function drawHills(showHole) {
    holeSensor.kill();
 
    // Generate hills
-   var NUM_VALLEYS = 3 + (Math.random() * 3);
+   var NUM_VALLEYS = Math.round(3 + (Math.random() * 3));
    var NUM_VALLEY_SLICES = 10;
 
    var hillCoordinates = calcValleys(NUM_VALLEYS, NUM_VALLEY_SLICES);
@@ -108,17 +118,17 @@ function drawHills(showHole) {
 
       // Randomly place the hole somewhere on the right side of the screen
       var holeFinderIdx = Math.round((hillCoordinates.length * 0.5) * Math.random() + (hillCoordinates.length * 0.25));
-      var wentDown = false;
+      var wentDown = 0;
       for (var holeIdx = holeFinderIdx; holeIdx < hillCoordinates.length; holeIdx++) {
 
          // If we hit the edge of the screen, re-roll the starting index (this is highly irregular, but it works, so #YOLO)
          if (holeIdx + 1 == hillCoordinates.length) {
             holeIdx = Math.round((hillCoordinates.length * 0.5) * Math.random() + (hillCoordinates.length * 0.25));
-            wentDown = false;
+            wentDown = 0;
          }
 
          // We want to make sure we're at the bottom of a hole, hence the 'went down' flag
-         if (wentDown && hillCoordinates[holeIdx][5] > hillCoordinates[holeIdx + 1][5]) {
+         if (wentDown > 2 && hillCoordinates[holeIdx][5] > hillCoordinates[holeIdx + 1][5]) {
 
             // Store the point where the flag should be placed
             var flagPoint = new Phaser.Point((hillCoordinates[holeIdx][2] + hillCoordinates[holeIdx + 1][2]) * 0.5 , hillCoordinates[holeIdx][3]);
@@ -129,8 +139,13 @@ function drawHills(showHole) {
             break;
          }
          else if (hillCoordinates[holeIdx][5] < hillCoordinates[holeIdx + 1][5]) {
-            wentDown = true;
+            wentDown += 1;
+         } 
+         else if (hillCoordinates[holeIdx][5] >= hillCoordinates[holeIdx + 1][5]) {
+            wentDown = 0;
          }
+
+
       }
 
       // Place the flag
@@ -186,12 +201,30 @@ function drawHills(showHole) {
 
 function roundStart() {
 
-   remainingBalls = 3;
+   remainingBalls = MAX_BALLS;
+
+   updateScore();
 
    drawHills(true);
 
    // Set up handlers for mouse events
    game.input.onDown.add(mouseDragStart, this);
+}
+
+function updateScore() {
+
+   var tmp = '';
+
+   for (var i = 1; i <= MAX_BALLS; i++) {
+      if (remainingBalls >= i) {
+         tmp += '.';
+      } else {
+         tmp += ' ';
+      }
+   }
+
+   scoreText.text = tmp + ' ' + score;
+
 }
 
 function create () {
@@ -206,8 +239,17 @@ function create () {
 
    game.physics.box2d.gravity.y = 6000;
 
+
    var background = game.add.sprite(game.world.centerX, game.world.centerY, 'background');
    background.anchor.setTo(0.5, 0.5);
+
+   scoreText = game.add.retroFont('scoreFont', 7, 6, '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ,.', 10);
+   scoreText.text = '';
+   scoreImg = game.add.image(game.world.centerX, 50, scoreText);
+   scoreImg.anchor.setTo(0.5, 0.5);
+   scoreImg.scale.x = 10;
+   scoreImg.scale.y = 10;
+   scoreImg.alpha = 0.8;
 
    scanlines = game.add.tileSprite(0, 0, 800, 600, 'scanlines');
    scanlines.alpha = 0.06;
@@ -320,6 +362,8 @@ function update() {
 
       gameState = GAME_STATE_BUSY;
 
+      score += 1;
+
       roundStart();
 
       gameState = GAME_STATE_PLAYING;
@@ -381,6 +425,12 @@ function hideTitle() {
 
 function mouseDragStart() {
 
+   /*
+   if (remainingBalls <= 0) {
+      return;
+   }
+   */
+
    ballSprite.body.gravityScale = 0;
    ballSprite.reset(100, shooterBaseSprite.world.y - 10);
    ballSprite.visible = false;
@@ -404,6 +454,10 @@ function mouseDragStart() {
 
    // game.input.addMoveCallback(mouseDragMove, this);
    game.input.onUp.add(mouseDragEnd, this);
+
+   remainingBalls -= 1;
+   updateScore();
+
 }
 
 function updateShooter() {
@@ -487,7 +541,7 @@ function ballOnGroundCallback(body1, body2, fixture1, fixture2, begin) {
 
 function inHoleCallback(body1, body2, fixture1, fixture2, begin) {
 
-   if (!begin) {
+   if (!ballSprite.alive || !begin) {
       return;
    }
 
@@ -529,7 +583,7 @@ function calcValleys(numberOfValleys, pixelStep) {
    console.log('hillWidth: ' + hillWidth);
    console.log('hillSliceWidth: ' + hillSliceWidth);
    */
-   
+
    var hillVector = new box2d.b2Vec2();
 
    var hillX = 0;
@@ -550,8 +604,8 @@ function calcValleys(numberOfValleys, pixelStep) {
 
          hillVector = [];
          hillVector.push(new box2d.b2Vec2(hillX, game.world.height));
-         hillVector.push(new box2d.b2Vec2(hillX,(hillStartY+randomHeight * Math.cos(2 * Math.PI / hillSliceWidth * j))));
-         hillVector.push(new box2d.b2Vec2(hillX + pixelStep,(hillStartY + randomHeight * Math.cos(2 * Math.PI / hillSliceWidth * (j + 1)))));
+         hillVector.push(new box2d.b2Vec2(hillX, (hillStartY+randomHeight * Math.cos(2 * Math.PI / hillSliceWidth * j))));
+         hillVector.push(new box2d.b2Vec2(hillX + pixelStep, (hillStartY + randomHeight * Math.cos(2 * Math.PI / hillSliceWidth * (j + 1)))));
          hillVector.push(new box2d.b2Vec2(hillX + pixelStep, game.world.height));
 
          var poly = [];
