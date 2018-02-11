@@ -6,24 +6,20 @@ var sounds = [];
 
 function preload () {
 
-   game.load.image('background', 'img/background.png');
-   game.load.image('title', 'img/title.png');
-   game.load.image('plane', 'img/plane.png');
-   game.load.image('ball', 'img/ball.png');
-   game.load.image('arrow', 'img/arrow.png');
-   game.load.image('flag', 'img/flag.png');
-   game.load.image('shooter', 'img/shooter.png');
-   game.load.image('scanlines', 'img/scanlines.png');
-   game.load.image('tv', 'img/tv-overlay.png');
+   // Needed to combat content caching
+   var imgFolder = 'img2/';
 
-   if (game.device.desktop) {
-      game.load.spritesheet('gameover', 'img/game-over.png', 734, 46);
-
-   } else {
-      game.load.spritesheet('gameover', 'img/game-over-mobile.png', 627, 46);
+   var imgNames = ['background', 'title', 'plane', 'ball', 'arrow', 'flag', 'shooter', 'scanlines', 'tv-overlay'];
+   for (var i = 0; i < imgNames.length; i++) {
+      game.load.image(imgNames[i], imgFolder + imgNames[i] + '.png');
    }
 
-   game.load.spritesheet('explosion', 'img/explosion', 64, 32);
+   if (game.device.desktop) {
+      game.load.spritesheet('gameover', imgFolder + 'game-over.png', 734, 46);
+   } else {
+      game.load.spritesheet('gameover', imgFolder + 'game-over-mobile.png', 627, 46);
+   }
+   game.load.spritesheet('explosion', imgFolder + 'explosion.png', 64, 32);
 
    game.load.image('scoreFont', 'fonts/asb.png');
 
@@ -314,7 +310,7 @@ function create () {
    scanlines = game.add.tileSprite(0, 0, 800, 600, 'scanlines');
    scanlines.alpha = 0.06;
 
-   tv = game.add.sprite(game.world.centerX, game.world.centerY, 'tv');
+   tv = game.add.sprite(game.world.centerX, game.world.centerY, 'tv-overlay');
    tv.anchor.setTo(0.5, 0.5);
 
    gameoverSprite = game.add.sprite(game.world.centerX, game.world.centerY + 20, 'gameover');
