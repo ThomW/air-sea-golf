@@ -9,7 +9,7 @@ function preload () {
    // Needed to combat content caching
    var imgFolder = 'img2/';
 
-   var imgNames = ['background', 'title', 'plane', 'ball', 'arrow', 'flag', 'shooter', 'scanlines', 'tv-overlay'];
+   var imgNames = ['background', 'title', 'plane', 'ball', 'arrow', 'flag', 'shooter', 'tv-overlay'];
    for (var i = 0; i < imgNames.length; i++) {
       game.load.image(imgNames[i], imgFolder + imgNames[i] + '.png');
    }
@@ -49,7 +49,6 @@ var hillGraphics = [];
 var hillBody = null;
 
 var tv;
-var scanlines;
 
 // Some game variables
 var MAX_BALLS = 5;
@@ -254,7 +253,6 @@ function drawHills(showHole) {
    game.world.bringToTop(title);
    game.world.bringToTop(flagSprite);
    game.world.bringToTop(ballSprite);
-   game.world.bringToTop(scanlines);
    game.world.bringToTop(tv);
 }
 
@@ -306,9 +304,6 @@ function create () {
    scoreImg.scale.x = 10;
    scoreImg.scale.y = 10;
    scoreImg.alpha = 0.8;
-
-   scanlines = game.add.tileSprite(0, 0, 800, 600, 'scanlines');
-   scanlines.alpha = 0.06;
 
    tv = game.add.sprite(game.world.centerX, game.world.centerY, 'tv-overlay');
    tv.anchor.setTo(0.5, 0.5);
