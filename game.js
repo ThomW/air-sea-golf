@@ -130,6 +130,7 @@ function drawHills(showHole) {
    
    flagSprite.kill();
    holeSensor.kill();
+   ballSprite.kill();
 
    // Generate hills
    var NUM_VALLEYS = Math.round(3 + (Math.random() * 3));
