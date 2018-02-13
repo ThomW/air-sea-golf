@@ -7,7 +7,7 @@ var sounds = [];
 function preload () {
 
    // Needed to combat content caching
-   var imgFolder = 'img2/';
+   var imgFolder = 'img3/';
 
    var imgNames = ['background', 'title', 'plane', 'ball', 'arrow', 'flag', 'shooter', 'tv-overlay'];
    for (var i = 0; i < imgNames.length; i++) {
