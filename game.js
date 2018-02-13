@@ -463,7 +463,7 @@ function update() {
    // Homebrew at rest
    var POSITION_THRESHOLD = 2;
    var POSITION_TIMEOUT = 2000;
-   if (ballSprite.alive && Math.abs(ballSprite.deltaX) < POSITION_THRESHOLD && Math.abs(ballSprite.deltaY) < POSITION_THRESHOLD) {
+   if (ballSprite.visible && ballSprite.alive && Math.abs(ballSprite.deltaX) < POSITION_THRESHOLD && Math.abs(ballSprite.deltaY) < POSITION_THRESHOLD) {
       if (ballRestingStart == null) {
          ballRestingStart = game.time.time;
       } else if (game.time.elapsedSince(ballRestingStart) > POSITION_TIMEOUT) {
