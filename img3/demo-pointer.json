@@ -1,0 +1,27 @@
+
+{"frames": [
+{
+	"filename": "default",
+	"frame": {"x":0,"y":0,"w":390,"h":845},
+	"rotated": false,
+	"trimmed": true,
+	"spriteSourceSize": {"x":0,"y":0,"w":390,"h":845},
+	"sourceSize": {"w":390,"h":845}
+}
+,{
+	"filename": "drag",
+	"frame": {"x":390,"y":0,"w":390,"h":845},
+	"rotated": false,
+	"trimmed": true,
+	"spriteSourceSize": {"x":0,"y":0,"w":390,"h":845},
+	"sourceSize": {"w":390,"h":845}
+}],
+"meta": {
+	"app": "",
+	"version": "",
+	"image": "demo-pointer.png",
+	"format": "RGBA8888",
+	"size": {"w":780,"h":845},
+	"scale": "1"
+}
+}

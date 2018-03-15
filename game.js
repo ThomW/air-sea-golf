@@ -21,6 +21,8 @@ function preload () {
    }
    game.load.spritesheet('explosion', imgFolder + 'explosion.png', 64, 32);
 
+   game.load.atlas('demo-pointer', imgFolder + 'demo-pointer.png', imgFolder + 'demo-pointer.json');
+
    game.load.image('scoreFont', 'fonts/asb.png');
 
    for (var i = 0; i < soundNames.length; i++) {
@@ -73,6 +75,10 @@ var scoreImg;
 
 var ballRestingData = null;
 
+var DEMO_MODE = false;
+var demoLevel = [[10,600,10,417.32022229988326,20,418.9196844672269,20,600],[20,600,20,418.9196844672269,30,423.5615044682101,30,600],[30,600,30,423.5615044682101,40,430.7913086196749,40,600],[40,600,40,430.7913086196749,50,439.9013933182685,50,600],[50,600,50,439.9013933182685,60,450,60,600],[60,600,60,450,70,460.0986066817315,70,600],[70,600,70,460.0986066817315,80,469.20869138032504,80,600],[80,600,80,469.20869138032504,90,476.4384955317899,90,600],[90,600,90,476.4384955317899,100,481.0803155327731,100,600],[100,600,100,481.0803155327731,110,482.67977770011674,110,600],[110,600,110,482.67977770011674,120,481.0803155327731,120,600],[120,600,120,481.0803155327731,130,476.4384955317899,130,600],[130,600,130,476.4384955317899,140,469.2086913803251,140,600],[140,600,140,469.2086913803251,150,460.0986066817315,150,600],[150,600,150,460.0986066817315,160,450,160,600],[160,600,160,450,170,439.9013933182685,170,600],[170,600,170,439.9013933182685,180,430.79130861967496,180,600],[180,600,180,430.79130861967496,190,423.5615044682101,190,600],[190,600,190,423.5615044682101,200,418.9196844672269,200,600],[200,600,200,418.9196844672269,210,417.32022229988326,210,600],[210,600,210,417.32022229988326,220,419.1643088575518,220,600],[220,600,220,419.1643088575518,230,424.5160564897864,230,600],[230,600,230,424.5160564897864,240,432.85159885052553,240,600],[240,600,240,432.85159885052553,250,443.3549949763614,250,600],[250,600,250,443.3549949763614,260,454.99809927303323,260,600],[260,600,260,454.99809927303323,270,466.64120356970506,270,600],[270,600,270,466.64120356970506,280,477.14459969554093,280,600],[280,600,280,477.14459969554093,290,485.48014205628004,290,600],[290,600,290,485.48014205628004,300,490.83188968851465,300,600],[300,600,300,490.83188968851465,310,492.6759762461832,310,600],[310,600,310,492.6759762461832,320,490.83188968851465,320,600],[320,600,320,490.83188968851465,330,485.48014205628004,330,600],[330,600,330,485.48014205628004,340,477.14459969554093,340,600],[340,600,340,477.14459969554093,350,466.6412035697051,350,600],[350,600,350,466.6412035697051,360,454.99809927303323,360,600],[360,600,360,454.99809927303323,370,443.3549949763614,370,600],[370,600,370,443.3549949763614,380,432.85159885052553,380,600],[380,600,380,432.85159885052553,390,424.5160564897864,390,600],[390,600,390,424.5160564897864,400,419.1643088575518,400,600],[400,600,400,419.1643088575518,410,417.32022229988326,410,600],[410,600,410,417.32022229988326,420,419.9961365728891,420,600],[420,600,420,419.9961365728891,430,427.7619422586737,430,600],[430,600,430,427.7619422586737,440,439.85746818916266,440,600],[440,600,440,439.85746818916266,450,455.09872001179514,450,600],[450,600,450,455.09872001179514,460,471.9937778061262,460,600],[460,600,460,471.9937778061262,470,488.88883560045724,470,600],[470,600,470,488.88883560045724,480,504.1300874230898,480,600],[480,600,480,504.1300874230898,490,516.2256133535788,490,600],[490,600,490,516.2256133535788,500,523.9914190393633,500,600],[500,600,500,523.9914190393633,510,526.6673333123692,510,600],[510,600,510,526.6673333123692,520,523.9914190393633,520,600],[520,600,520,523.9914190393633,530,516.2256133535788,530,600],[530,600,530,516.2256133535788,540,504.1300874230898,540,600],[540,600,540,504.1300874230898,550,488.8888356004573,550,600],[550,600,550,488.8888356004573,560,471.9937778061262,560,600],[560,600,560,471.9937778061262,570,455.0987200117952,570,600],[570,600,570,455.0987200117952,580,439.85746818916266,580,600],[580,600,580,439.85746818916266,590,427.7619422586737,590,600],[590,600,590,427.7619422586737,600,419.9961365728891,600,600],[600,600,600,419.9961365728891,610,417.32022229988326,610,600],[610,600,610,417.3202222998832,620,418.46432306890813,620,600],[620,600,620,418.46432306890813,630,421.7846328212918,630,600],[630,600,630,421.7846328212918,640,426.95613650451264,640,600],[640,600,640,426.95613650451264,650,433.47261130607205,650,600],[650,600,650,433.47261130607205,660,440.69617926944375,660,600],[660,600,660,440.69617926944375,670,447.91974723281544,670,600],[670,600,670,447.91974723281544,680,454.43622203437485,680,600],[680,600,680,454.43622203437485,690,459.6077257175957,690,600],[690,600,690,459.6077257175957,700,462.92803546997936,700,600],[700,600,700,462.92803546997936,710,464.0721362390043,710,600],[710,600,710,464.0721362390043,720,462.92803546997936,720,600],[720,600,720,462.92803546997936,730,459.6077257175957,730,600],[730,600,730,459.6077257175957,740,454.43622203437485,740,600],[740,600,740,454.43622203437485,750,447.91974723281544,750,600],[750,600,750,447.91974723281544,760,440.69617926944375,760,600],[760,600,760,440.69617926944375,770,433.47261130607205,770,600],[770,600,770,433.47261130607205,780,426.95613650451264,780,600],[780,600,780,426.95613650451264,790,421.7846328212918,790,600],[790,600,790,421.7846328212918,800,418.46432306890813,800,600]];
+var demoPointerSprite = null;
+
 function gameStart() {
 
    drawHills(false);
@@ -85,6 +91,9 @@ function clickStart() {
    score = 0;
 
    gameState = GAME_STATE_PLAYING;
+
+   // Kickoff the zero-round demo to help players understand the mechanics
+   doDemo();
 
    // Remove the click event that starts the game
    game.input.onDown.removeAll();
@@ -136,14 +145,21 @@ function drawHills(showHole) {
    var NUM_VALLEYS = Math.round(3 + (Math.random() * 3));
    var NUM_VALLEY_SLICES = 10;
 
-   var hillCoordinates = calcValleys(NUM_VALLEYS, NUM_VALLEY_SLICES);
+   var hillCoordinates, holeFinderIdx = null;
+
+   if (DEMO_MODE) {
+      hillCoordinates = demoLevel;
+      holeFinderIdx = 40;
+   } else {
+      hillCoordinates = calcValleys(NUM_VALLEYS, NUM_VALLEY_SLICES);
+      holeFinderIdx = Math.round((hillCoordinates.length * 0.5) * Math.random() + (hillCoordinates.length * 0.25));
+   }
 
    // console.log('hillCoordinates: ' + hillCoordinates.length + ' -- max: ' + hillCoordinates[hillCoordinates.length - 1][4]);
 
    if (showHole) {
 
       // Randomly place the hole somewhere on the right side of the screen
-      var holeFinderIdx = Math.round((hillCoordinates.length * 0.5) * Math.random() + (hillCoordinates.length * 0.25));
       var wentDown = 0;
       for (var holeIdx = holeFinderIdx; holeIdx < hillCoordinates.length; holeIdx++) {
 
@@ -255,6 +271,7 @@ function drawHills(showHole) {
    game.world.bringToTop(flagSprite);
    game.world.bringToTop(ballSprite);
    game.world.bringToTop(tv);
+   game.world.bringToTop(demoPointerSprite);
 }
 
 function roundStart() {
@@ -266,7 +283,9 @@ function roundStart() {
    drawHills(true);
 
    // Set up handlers for mouse events
-   game.input.onDown.add(mouseDragStart, this);
+   if (!DEMO_MODE) {
+      game.input.onDown.add(mouseDragStart, this);
+   }
 }
 
 function updateScore() {
@@ -396,6 +415,13 @@ function create () {
 
    shooterBaseSprite.tint = shooterAngleSprite.tint = 0x0000ff;
 
+   // Demo pointer
+   demoPointerSprite = game.add.sprite(0, 0, 'demo-pointer', 'default');
+   demoPointerSprite.anchor.setTo(0.3, 0.177);
+   demoPointerSprite.visible = false;
+   demoPointerSprite.alpha = 0.85;
+   demoPointerSprite.angle = -35;
+
    // Init sounds
    for (var i = 0; i < soundNames.length; i++) {
       sounds[soundNames[i]] = game.add.audio(soundNames[i]);
@@ -411,9 +437,14 @@ function update() {
 
       if (gameState == GAME_STATE_CHANGE_HOLES) {
 
-         gameState = GAME_STATE_BUSY;
+         if (!DEMO_MODE) {
+            score += 1;
+         }
 
-         score += 1;
+         // Demo mode is always only activated until the ball is sunk for the first time
+         DEMO_MODE = false;
+
+         gameState = GAME_STATE_BUSY;
 
          roundStart();
 
@@ -536,6 +567,21 @@ function resetPlane(p) {
    p.tint = Math.random() * 0xffffff;
 }
 
+function getMousePosition() {
+
+   var ret = {};
+
+   if (DEMO_MODE) {
+      ret.x = demoPointerSprite.position.x;
+      ret.y = demoPointerSprite.position.y;
+   } else {
+      ret.x = game.input.activePointer.position.x;
+      ret.y = game.input.activePointer.position.y;
+   }
+
+   return ret;
+}
+
 function mouseDragStart() {
 
    if (remainingBalls <= 0) {
@@ -551,8 +597,7 @@ function mouseDragStart() {
    ballSprite.body.angularVelocity = 0;
    ballSprite.visible = false;
 
-   mouseDownPosition.x = game.input.activePointer.position.x;
-   mouseDownPosition.y = game.input.activePointer.position.y;
+   mouseDownPosition = getMousePosition();
 
    arrowSprite.reset(shooterBaseSprite.world.x, shooterBaseSprite.world.y);
    arrowSprite.alpha = 0.5;
@@ -563,8 +608,9 @@ function mouseDragStart() {
    shooterAngleSprite.reset(shooterBaseSprite.world.x, shooterBaseSprite.world.y);
    shooterAngleSprite.alpha = 1;
 
-   // game.input.addMoveCallback(mouseDragMove, this);
-   game.input.onUp.add(mouseDragEnd, this);
+   if (!DEMO_MODE) {
+      game.input.onUp.add(mouseDragEnd, this);
+   }
 
    remainingBalls -= 1;
    updateScore();
@@ -576,11 +622,11 @@ function updateShooter() {
       return;
    }
    
-   if ( mouseDownPosition == null ) {
+   if ( mouseDownPosition == null && !DEMO_MODE)  {
       return;
    }
    
-   var mouseNowPosition = game.input.activePointer.position;
+   var mouseNowPosition = getMousePosition();
    var dx = mouseNowPosition.x - mouseDownPosition.x;
    var dy = mouseNowPosition.y - mouseDownPosition.y;
 
@@ -599,7 +645,7 @@ function mouseDragEnd() {
 
    sounds.shoot.play();
 
-   var mouseNowPosition = game.input.activePointer.position;
+   var mouseNowPosition = getMousePosition();
    var dx = mouseNowPosition.x - mouseDownPosition.x;
    var dy = mouseNowPosition.y - mouseDownPosition.y;
    
@@ -665,8 +711,6 @@ function inHoleCallback(body1, body2, fixture1, fixture2, begin) {
    if (!ballSprite.alive || !begin) {
       return;
    }
-
-   // Do scorekeeping, etc.
 
    ballSprite.kill();
    holeSensor.kill();
@@ -761,6 +805,9 @@ function calcValleys(numberOfValleys, pixelStep) {
       hillStartY = hillStartY + randomHeight;
    }
 
+   // Capture the output so we can do things like create demo landscape
+   // console.log(JSON.stringify(ret));
+
    // Return the coordinates we've created
    return ret;
 }
@@ -771,4 +818,60 @@ function rand(min, max) {
 
 function randInt(min, max) {
    return Math.round(rand(min, max));
+}
+
+
+var demoMoveIdx = 0;
+var demoMoves = [
+   [600, 200, false],[600,600, true],[600,400, true],[400, 300, true],[500,450,true],[500,450,false],[800,600,false],[600,200,false],[500,350,true],[500,350,false]
+]
+
+function doDemo() {
+
+   DEMO_MODE = true;
+
+   demoMoveIdx = 0;
+
+   // Reset the demo pointer sprite
+   demoPointerSprite.frameName = 'default';
+   demoPointerSprite.reset(800, 600);
+   demoPointerSprite.visible = true;
+
+   doNextDemoMove();
+}
+
+function doNextDemoMove() {
+
+   if (demoMoveIdx < demoMoves.length) {
+
+      var move = demoMoves[demoMoveIdx];
+
+      if (move[2]) {
+         if (demoPointerSprite.frameName != 'drag') {
+            demoPointerSprite.frameName = 'drag';
+            mouseDragStart();
+         } else {
+
+         }
+      } else {
+         if (demoPointerSprite.frameName != 'default') {
+            demoPointerSprite.frameName = 'default';
+            mouseDragEnd();
+         }
+      }
+
+      demoMove = game.add.tween(demoPointerSprite);
+      demoMove.to({x: move[0] , y: move[1]}, 500);
+      demoMove.onComplete.add(doNextDemoMove, this);
+      demoMove.start();
+
+      demoMoveIdx++;
+
+   // Out of moves - hide the demo pointer.
+   } else {
+
+      demoPointerSprite.visible = false;
+
+      // Demo mode is automatically exited when the ball goes in the hole
+   }
 }
