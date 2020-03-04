@@ -4,3 +4,4 @@ box2d-plugin.js
 box2d-plugin-full.js
 phaser.js
 js/
+.DS_Store
